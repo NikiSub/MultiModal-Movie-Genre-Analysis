@@ -103,6 +103,7 @@ if __name__ == '__main__':
     poly = False
 
     result_folder = './intermediate_result/'
+
     if not os.path.isdir(result_folder):
         os.mkdir(result_folder)
 
@@ -143,7 +144,7 @@ if __name__ == '__main__':
     model = torch.nn.DataParallel(model).to(device)
     model.load_state_dict(torch.load('deep-text-recognition-benchmark/TPS-ResNet-BiLSTM-Attn.pth', map_location=device))
 
-    filename = "81"
+    filename = "87"
     file_extension = ".jpg"
     image = imgproc.loadImage(filename+file_extension)
     print("Starting text extraction")
@@ -155,30 +156,94 @@ if __name__ == '__main__':
     rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     plt.imshow(rgb_img)
     plt.show()
+    points = []
+    order = []
     for i in range(0,len(bboxes)):
         sample_bbox = bboxes[i]
         #print(bboxes[0])
         min_point = sample_bbox[0]
-        max_point = sample_bbox[0]
-        for p in sample_bbox:
+        max_point = sample_bbox[2]
+        for j,p in enumerate(sample_bbox):
             if(p[0]<=min_point[0] and p[1]<=min_point[1]):
                 min_point = p
+                #print("min", j)
             if(p[0]>=max_point[0] and p[1]>=max_point[1]):
                 max_point = p
-
+                #print("max", j)
+        points.append((min_point, max_point))
+        order.append(0)
         
-        #print("Full Image")
-        #print(int(min_point[0]))
-        #print(int(min_point[1]))
-        #print(int(max_point[0]))
-        #print(int(max_point[1]))
-
         #print("Cropped image")
+        #print(min_point)
+        #if(i==6):
+        #    print(sample_bbox)
+        #    print(min_point)
+        #    print(max_point)
+        #    crop_image = rgb_img[int(min_point[1]):int(max_point[1]),int(min_point[0]):int(max_point[0])]
+        #    plt.imshow(crop_image)
+        #    plt.show()
+        #mask_file = result_folder + filename+"_" + str(i) + '.jpg'
+        #cv2.imwrite(mask_file, crop_image)
+    num_ordered = 0
+    rows_ordered = 0
+    points_sorted =[]
+    ordered_points_index = 0
+    order_sorted=[]
+    while(num_ordered<len(points)):
+        #find lowest-y that is unordered
+        min_y = len(rgb_img)
+        min_y_index = -1
+        for i in range(0,len(points)):
+            if(order[i]==0):
+                if(points[i][0][1]<=min_y):
+                    min_y = points[i][0][1]
+                    min_y_index = i
+        rows_ordered+=1
+        order[min_y_index] = rows_ordered
+        num_ordered+=1
+        points_sorted.append(points[min_y_index])
+        order_sorted.append(rows_ordered)
+        ordered_points_index = len(points_sorted)-1
+        
+        # Group bboxes that are on the same row
+        max_y = points[min_y_index][1][1]
+        range_y = max_y-min_y
+        for i in range(0,len(points)):
+            if(order[i]==0):
+                min_y_i = points[i][0][1]
+                max_y_i = points[i][1][1]
+                range_y_i = max_y_i-min_y_i
+                if(max_y_i>=min_y and min_y_i<=max_y):
+                    overlap = (min(max_y_i,max_y)-max(min_y_i,min_y))/(min(range_y,range_y_i))
+                    if(overlap>=0.30):
+                        order[i] = rows_ordered
+                        num_ordered+=1
+                        min_x_i = points[i][0][0]
+                        for j in range(ordered_points_index, len(points_sorted)+1):
+                            if(j<len(points_sorted)): #insert before
+                                min_x_j = points_sorted[j][0][0]
+                                if(min_x_i<min_x_j):
+                                    points_sorted.insert(j, points[i])
+                                    order_sorted.insert(j, rows_ordered)
+                                    break
+                            else: #insert at the end of array
+                                points_sorted.insert(j, points[i])
+                                order_sorted.insert(j, rows_ordered)
+                                break
+                        
+    #print(len(points))
+    #print(len(points_sorted))
+    for i in range(0,len(points_sorted)):
+        min_point = points_sorted[i][0]
+        max_point = points_sorted[i][1]
+        #print("Cropped image")
+        mask_file = result_folder + filename+"_" + str(order_sorted[i])+"_"+str(i) + '.jpg'
+        #print(mask_file)
         crop_image = rgb_img[int(min_point[1]):int(max_point[1]),int(min_point[0]):int(max_point[0])]
-        plt.imshow(crop_image)
-        plt.show()
-        mask_file = result_folder + filename+"_" + str(i) + '.jpg'
+        #plt.imshow(crop_image)
+        #plt.show()
         cv2.imwrite(mask_file, crop_image)
+
 
     # prepare data. two demo images from https://github.com/bgshih/crnn#run-demo
     #result_folder = './intermediate_result/'
@@ -196,17 +261,27 @@ if __name__ == '__main__':
             batch_size = image_tensors.size(0)
             image = image_tensors.to(device)
             #image = (torch.from_numpy(crop_image).unsqueeze(0)).to(device)
-            print(image_path_list)
-            print(image.size())
+            #print(image_path_list)
+            #print(image.size())
             length_for_pred = torch.IntTensor([opt.batch_max_length] * batch_size).to(device)
             text_for_pred = torch.LongTensor(batch_size, opt.batch_max_length + 1).fill_(0).to(device)
             preds = model(image, text_for_pred, is_train=False)
             _, preds_index = preds.max(2)
             preds_str = converter.decode(preds_index, length_for_pred)
-            print(preds_str)
-            for p in preds_str:
+            #print(preds_str)
+            output_string = ""
+            curr_order = 1
+            for path,p in zip(image_path_list, preds_str):
                 if 'Attn' in opt.Prediction:
                     pred_EOS = p.find('[s]')
                     p = p[:pred_EOS]  # prune after "end of sentence" token ([s])
-                print(p)
+                path_info = path[len(result_folder):-len(file_extension)].split("_")
+                if(path_info[0]==filename):
+                    if(int(path_info[1])>curr_order):
+                        curr_order+=1
+                        output_string+="\n"
+                    output_string+=p+" "
+            print(output_string)
+    plt.imshow(rgb_img)
+    plt.show()
     #print(opt)
