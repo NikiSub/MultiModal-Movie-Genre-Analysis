@@ -88,12 +88,20 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, r
 
     return boxes, polys, ret_score_text
 if __name__ == '__main__':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    cuda = torch.cuda.is_available()
 
     net = CRAFT()
-    cuda = False
     #NOT CUDA (for now)
-    net.load_state_dict(copyStateDict(torch.load('CRAFT-pytorch/craft_mlt_25k.pth', map_location='cpu')))
-
+    if cuda:
+        net.load_state_dict(copyStateDict(torch.load('CRAFT-pytorch/craft_mlt_25k.pth')))
+    else:
+        net.load_state_dict(copyStateDict(torch.load('CRAFT-pytorch/craft_mlt_25k.pth', map_location='cpu')))
+    
+    if cuda:
+        net = net.cuda()
+        net = torch.nn.DataParallel(net)
+        cudnn.benchmark = False
     net.eval()
     refine_net = None
     
@@ -107,7 +115,7 @@ if __name__ == '__main__':
     if not os.path.isdir(result_folder):
         os.mkdir(result_folder)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     #print(device)
     parser = argparse.ArgumentParser()
     #Data processing
