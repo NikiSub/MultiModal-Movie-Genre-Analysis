@@ -11,7 +11,7 @@ class MovieDataset(torch.utils.data.Dataset):
         self.image_dir = os.path.join(folder, split, 'images')
         self.image_transform = image_transform
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.text_extractor = TextExtractor(folder+"/"+split+"/images/","dataset_text_extract_output.txt")
+        self.text_extractor = TextExtractor(folder+"/"+split+"/images/",split+"_"+"dataset_text_extract_output.txt",split)
         #insantiate a model to extract text
 
         # Category definitions of movies.
@@ -77,10 +77,10 @@ class MovieDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.fdir)
 
-val_data = MovieDataset(split = 'dev_n')
-#print('Data size: %d samples' % len(val_data))
+val_data = MovieDataset(split = 'train')
+print('Data size: %d samples' % len(val_data))
 
-sample_movieID = 0
+sample_movieID = 2
 img, text, text_mask, labels = val_data[sample_movieID]
 #print(text)
 #print(text_mask)
@@ -92,5 +92,5 @@ print(val_data.tokenizer.convert_ids_to_tokens(text.numpy().tolist()))
 # Is there a better way to do this?
 #print([val_data.categories[ind] for ind, val in enumerate(labels == 1) if val == 1])
 
-#plt.imshow(img)
-#plt.show()
+plt.imshow(img)
+plt.show()

@@ -25,8 +25,9 @@ from utils import CTCLabelConverter, AttnLabelConverter
 from dataset import RawDataset, AlignCollate
 
 class TextExtractor():
-    def __init__(self, image_folder, extract_text_file):
+    def __init__(self, image_folder, extract_text_file,split):
         self.i_folder = image_folder
+        #print(image_folder)
         self.extract_text_file = extract_text_file
         self.canvas_size = 1280
         self.mag_ratio = 1.5
@@ -50,7 +51,8 @@ class TextExtractor():
         self.low_text = 0.4
         self.poly = False
 
-        self.result_folder = './intermediate_result/'
+        self.result_folder = './'+split+'_'+'intermediate_result/'
+
 
         if not os.path.isdir(self.result_folder):
             os.mkdir(self.result_folder)
@@ -154,16 +156,20 @@ class TextExtractor():
         return boxes, polys, ret_score_text
     def extract_text(self):
         l = (os.listdir(self.i_folder))
+        img_to_index = {}
+        count = 0
         for full_file in l:
             split_file = full_file.split(".")
             filename = split_file[0] 
+            img_to_index[count] = filename
+            count+=1
+            #print(filename)
             file_extension = "."+split_file[1]
             #print(filename, file_extension)
             image = imgproc.loadImage(self.i_folder+full_file)
             bboxes, polys, score_text = self.test_net(self.net, image, self.text_threshold, self.link_threshold, self.low_text, self.cuda, self.poly, self.refine_net)
             img=cv2.imread(self.i_folder+filename+file_extension)
             rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
             points = []
             order = []
             for i in range(0,len(bboxes)):
@@ -171,10 +177,16 @@ class TextExtractor():
                 min_point = sample_bbox[0]
                 max_point = sample_bbox[2]
                 for j,p in enumerate(sample_bbox):
-                    if(p[0]<=min_point[0] and p[1]<=min_point[1]):
-                        min_point = p
-                    if(p[0]>=max_point[0] and p[1]>=max_point[1]):
-                        max_point = p
+                    if(p[0]<=min_point[0]):
+                        min_point = (p[0],min_point[1])
+                    if(p[1]<=min_point[1]):
+                        min_point = (min_point[0],p[1])
+                    if(p[0]>=max_point[0]):
+                        max_point = (p[0],max_point[1])
+                    if(p[1]>=max_point[1]):
+                        max_point = (max_point[0],p[1])
+                min_point = (max(min(len(rgb_img[0]),min_point[0]),0), max(min(len(rgb_img),min_point[1]),0))
+                max_point = (max(min(len(rgb_img[0]),max_point[0]),0), max(min(len(rgb_img),max_point[1]),0))
                 points.append((min_point, max_point))
                 order.append(0)
             num_ordered = 0
@@ -207,7 +219,7 @@ class TextExtractor():
                         max_y_i = points[i][1][1]
                         range_y_i = max_y_i-min_y_i
                         if(max_y_i>=min_y and min_y_i<=max_y):
-                            overlap = (min(max_y_i,max_y)-max(min_y_i,min_y))/(min(range_y,range_y_i))
+                            overlap = (min(max_y_i,max_y)-max(min_y_i,min_y))/(max(1,min(range_y,range_y_i)))
                             if(overlap>=0.30):
                                 order[i] = rows_ordered
                                 num_ordered+=1
@@ -226,8 +238,9 @@ class TextExtractor():
             for i in range(0,len(points_sorted)):
                 min_point = points_sorted[i][0]
                 max_point = points_sorted[i][1]
-                mask_file = self.result_folder + filename+"_" + str(order_sorted[i])+"_"+str(i) + '.jpg'
+                mask_file = self.result_folder + filename+"_" + str(order_sorted[i])+"_"+str(i) + file_extension
                 crop_image = rgb_img[int(min_point[1]):int(max_point[1]),int(min_point[0]):int(max_point[0])]
+                #print(filename, min_point, max_point, len(rgb_img), len(rgb_img[0]))
                 cv2.imwrite(mask_file, crop_image)
         AlignCollate_demo = AlignCollate(imgH=self.opt.imgH, imgW=self.opt.imgW, keep_ratio_with_pad=self.opt.PAD)
         demo_data = RawDataset(root=self.result_folder, opt=self.opt)  # use RawDataset
@@ -259,7 +272,7 @@ class TextExtractor():
                     if 'Attn' in self.opt.Prediction:
                         pred_EOS = p.find('[s]')
                         p = p[:pred_EOS]  # prune after "end of sentence" token ([s])
-                    path_info = path[len(self.result_folder):-len(file_extension)].split("_")
+                    path_info = path[len(self.result_folder):].split(".")[0].split("_") #ASSUMES FILE EXTENSION OF SIZE 4 (.PNG, .JPG, ETC)
                     #print(curr_filename)
                     #print(path_info[0])
                     if(not (curr_filename==path_info[0])):
@@ -267,10 +280,16 @@ class TextExtractor():
                             f.write(str(count)+"\n")
                             f.write(curr_filename+"\n")
                             f.write(output_string+"\n\n")
-                        curr_filename = path_info[0]
+                        count+=1
+                        curr_filename = img_to_index[count]#path_info[0]
+                        while(not (curr_filename==path_info[0])):
+                            f.write(str(count)+"\n")
+                            f.write(curr_filename+"\n")
+                            f.write("\n\n")
+                            count+=1
+                            curr_filename = img_to_index[count]#path_info[0]
                         output_string = ""
                         curr_order = 1
-                        count+=1
                     if(int(path_info[1])>curr_order):
                         curr_order+=1
                         output_string+=end_line
