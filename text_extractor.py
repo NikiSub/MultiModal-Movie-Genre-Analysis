@@ -28,6 +28,7 @@ class TextExtractor():
     def __init__(self, image_folder, extract_text_file,split):
         self.i_folder = image_folder
         #print(image_folder)
+        #print("aaaaaaa test")
         self.extract_text_file = extract_text_file
         self.canvas_size = 1280
         self.mag_ratio = 1.5
@@ -76,7 +77,9 @@ class TextExtractor():
         self.parser.add_argument('--input_channel', type=int, default=1, help='the number of input channel of Feature extractor')
         self.parser.add_argument('--output_channel', type=int, default=512, help='the number of output channel of Feature extractor')
         self.parser.add_argument('--hidden_size', type=int, default=256, help='the size of the LSTM hidden state')
-        self.opt = self.parser.parse_args()
+        #self.opt = self.parser.parse_args()
+        self.opt, unknown = self.parser.parse_known_args()
+        #self.opt, unknown = self.parser.parse_known_args()
 
         if 'CTC' in self.opt.Prediction:
             self.converter = CTCLabelConverter(self.opt.character)
@@ -87,8 +90,8 @@ class TextExtractor():
         if self.opt.rgb:
             self.opt.input_channel = 3
         self.opt.num_gpu = torch.cuda.device_count()
-        #self.opt.batch_size = 192
-        self.opt.batch_size = 3
+        self.opt.batch_size = 192
+        #self.opt.batch_size = 3
         self.opt.workers = 0
         self.model = Model(self.opt) #image to text model (2nd model)
         self.model = torch.nn.DataParallel(self.model).to(self.device)
@@ -155,13 +158,14 @@ class TextExtractor():
 
         return boxes, polys, ret_score_text
     def extract_text(self):
-        l = (os.listdir(self.i_folder))
+        l = sorted(os.listdir(self.i_folder))
         img_to_index = {}
         count = 0
         for full_file in l:
             split_file = full_file.split(".")
             filename = split_file[0] 
             img_to_index[count] = filename
+            #print(count, filename)
             count+=1
             #print(filename)
             file_extension = "."+split_file[1]
@@ -275,6 +279,7 @@ class TextExtractor():
                     path_info = path[len(self.result_folder):].split(".")[0].split("_") #ASSUMES FILE EXTENSION OF SIZE 4 (.PNG, .JPG, ETC)
                     #print(curr_filename)
                     #print(path_info[0])
+                    #print("PATHINFO: ",path_info[0])
                     if(not (curr_filename==path_info[0])):
                         if(not (curr_filename=="")):
                             f.write(str(count)+"\n")
@@ -282,12 +287,14 @@ class TextExtractor():
                             f.write(output_string+"\n\n")
                         count+=1
                         curr_filename = img_to_index[count]#path_info[0]
+                        #print("CURRFILE: ", curr_filename)
                         while(not (curr_filename==path_info[0])):
                             f.write(str(count)+"\n")
                             f.write(curr_filename+"\n")
                             f.write("\n\n")
                             count+=1
                             curr_filename = img_to_index[count]#path_info[0]
+                            #print("CURRFILE: ", curr_filename)
                         output_string = ""
                         curr_order = 1
                     if(int(path_info[1])>curr_order):
