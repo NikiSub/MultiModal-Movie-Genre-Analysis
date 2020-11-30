@@ -28,16 +28,18 @@ class MovieDataset(torch.utils.data.Dataset):
         #print('Loading %s ...' % self.json_dir, end = '')
         print("extracting text and getting metadata")
         self.fdir = os.listdir(self.json_dir)
-        self.text_extractor.extract_text()
         self.metadata = [(fname[:-5], json.load(open(os.path.join(self.json_dir, fname)))) 
                      for fname in sorted(self.fdir) if not fname.startswith('.')]
+        print(len(self.metadata))
+        self.text_extractor.extract_text()
+        
         print(' finished')
 
         # Pre-tokenizing all sentences.
         
         print('Tokenizing...', end = '')
         self.tokenized_plots = list()
-        for i in range(0, len(self.fdir)):
+        for i in range(0, len(self.metadata)):
             text = self.text_extractor.get_item(i) #self.metadata[i][1]['plot'][0]
             encoded_text = self.tokenizer.encode_plus(
                 text, add_special_tokens = True, truncation = True, 
@@ -75,7 +77,7 @@ class MovieDataset(torch.utils.data.Dataset):
 
 
     def __len__(self):
-        return len(self.fdir)
+        return len(self.metadata)
 
 val_data = MovieDataset(split = 'train')
 print('Data size: %d samples' % len(val_data))
