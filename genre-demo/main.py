@@ -52,7 +52,6 @@ from transformers import BertForSequenceClassification, BertConfig
 from transformers import BertTokenizer
 
 
-print("loading ResNet18")
 preprocess = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
@@ -71,13 +70,16 @@ genreClasses = {id: category for (id, category) in enumerate(categories)}
 
 num_categories = len(categories) 
 
+print("Loading BERT")
 text_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
 
 text_model.load_state_dict(torch.load('best_bert_model.pth', map_location=torch.device('cpu')))
 
 text_model.eval()
+print("BERT loaded successfully!")
 
 # Loading ResNet-18
+print("Loading ResNet-18")
 img_model = torchvision.models.resnet18(pretrained=True)
 num_ftrs = img_model.fc.in_features
 img_model.fc = torch.nn.Linear(num_ftrs, num_categories)
@@ -87,14 +89,29 @@ img_model.fc = torch.nn.Linear(num_ftrs, num_categories)
 img_model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
 
 img_model.eval()
+
+print("ResNet-18 loaded successfully!")
+
 sys.path.insert(1, '../')
 from gmu_model import LinearClassifier, LinearCombine, Gated_MultiModal_Unit
 from text_extractor import TextExtractor
 gmu_model = Gated_MultiModal_Unit(img_model, text_model)
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-#TODO: This line Needs to be fixed
-#gmu_model.load_state_dict(torch.load('best_gmu.pth', map_location=torch.device('cpu')))
+
 #predicted = gmu_model.forward('eval', imgs, text, text_mask, label)
+
+print("Loading GMU")
+
+checkpoint = torch.load('best_gmu.pth', map_location=torch.device('cpu'))
+gmu_model.hv_gate.load_state_dict(checkpoint['hv_gate_state_dict'])
+gmu_model.ht_gate.load_state_dict(checkpoint['ht_gate_state_dict'])
+gmu_model.z_gate.load_state_dict(checkpoint['z_gate_state_dict'])
+
+print("GMU loaded successfully!")
+
+
+print("Preparing text extractor")
+
 if not os.path.isdir("./demo_images/"):
 	os.mkdir("./demo_images/")
 
@@ -110,17 +127,7 @@ for filename in os.listdir("./demo_images/"):
         print('Failed to delete %s. Reason: %s' % (file_path, e))
 text_extractor = TextExtractor("./demo_images/","demo_text_extract_output.txt","demo")
 
-# preload ResNet-50.
-# model = torchvision.models.resnet50(pretrained = True)
-# model.eval()
-print('ResNet18 was loaded!!!!!')
-
-# Load imagenet class names.
-# imagenetClasses = {int(idx): entry[1] for (idx, entry) in 
-#                    json.load(open('imagenet_class_index.json')).items()}
-
-########################################################
-
+print("Text extractor loaded successfully!")
 
 
 @app.route('/simple-demo', methods = ["GET", "POST"])
@@ -169,7 +176,7 @@ def simple_demo():
 				shutil.rmtree(file_path)
 		except Exception as e:
 			print('Failed to delete %s. Reason: %s' % (file_path, e))
-	if not os.path.isdir("./demo_intermediate_result/"):
+	if os.path.isdir("./demo_intermediate_result/"):
 		for filename in os.listdir("./demo_intermediate_result/"):
 			file_path = os.path.join("./demo_intermediate_result/", filename)
 			try:
@@ -219,28 +226,76 @@ def simple_demo():
 	input_batch = input_tensor.unsqueeze(0)  # Add batch dim.
 	#print(model) # Print the model.
 	
-	outputs = model(input_batch)
+	outputs = img_model(input_batch)
 	print(outputs.shape)
 
-	# # Apply softmax and sort the values.
-	probs, indices = (-outputs.softmax(dim = 1).data).sort()
-	# # Pick the top-5 scoring ones.
-	probs = (-probs).numpy()[0][:5]; indices = indices.numpy()[0][:10]
-	# # Concat the top-5 scoring indices with the class names.
-	preds = ['P[\"' + genreClasses[idx] + '\"] = ' + ('%.6f' % prob) \
-         for (prob, idx) in zip(probs, indices)]
+	print(f"IMAGE CLASSIFIER OUTPUT: {outputs}")
 
-	# # Print top classes predicted.
-	print('\n'.join(preds))
+	outputs = outputs.flatten()
+	m = torch.nn.Sigmoid()
+	output = m(outputs)
+
+	values, indices = output.topk(5)
+
+	values = values.tolist()
+	indices = indices.tolist()
+
+	preds = [genreClasses[idx] + ' score: ' + ('%.4f' % val) for (val, idx) in zip(values, indices)] 
+
+	# preds = ''
+	# for val, idx in zip(values, indices):
+	# 	preds += genreClasses[idx] + ' score: ' + str(val) + '\n'
+
 	my_str = '\n'.join(preds)
+
+	# # # Apply softmax and sort the values.
+	# probs, indices = (-outputs.softmax(dim = 1).data).sort()
+	# # # Pick the top-5 scoring ones.
+	# probs = (-probs).numpy()[0][:5]; indices = indices.numpy()[0][:10]
+	# # # Concat the top-5 scoring indices with the class names.
+	# preds = ['P[\"' + genreClasses[idx] + '\"] = ' + ('%.6f' % prob) \
+    #      for (prob, idx) in zip(probs, indices)]
+
+	# # # Print top classes predicted.
+	# print('\n'.join(preds))
+	# my_str = '\n'.join(preds)
 
 	# Encode the output image as a string for display.
 	output_image_str = image2string(output_img)
 
+	print(f"TEXT SHAPE: {text.shape}")
+	print(f"TEXT_MASK SHAPE: {text_mask.shape}")
+	
+	text = text.unsqueeze(0)
+	text_mask = text_mask.unsqueeze(0)
+
+	predicted = gmu_model.forward('eval', input_batch, text, text_mask)
+
+	outputs = predicted.flatten()
+
+	values, indices = outputs.topk(5)
+
+	values = values.tolist()
+	indices = indices.tolist()
+
+	preds = [genreClasses[idx] + ' score: ' + ('%.4f' % val) for (val, idx) in zip(values, indices)]
+
+	my_str2 = preds
+	
+	print(f'GMU PREDICTION: {predicted}')
+
+	print(f'my_str2: {my_str2}')
+
+
+
+
+	
+
 	return {'filename': filename, 
 			'input_image': input_image_str, 
 			'output_image': output_image_str,
-			'debug_str': my_str}
+			'debug_str': my_str, 
+			'debug_str2': my_str2}
 
 
 if __name__ == '__main__':

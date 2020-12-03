@@ -38,7 +38,7 @@ class Gated_MultiModal_Unit():
 
 
 
-  def forward(self, mode,imgs, texts, text_masks, labels):
+  def forward(self, mode,imgs, texts, text_masks):
     if (mode == 'train'):
       self.hv_gate.train()
       self.ht_gate.train()
@@ -51,15 +51,15 @@ class Gated_MultiModal_Unit():
 
     self.resnet_model.eval()
     self.bert_model.eval()
-    self.resnet_model.cuda()
-    self.bert_model.cuda()
+    # self.resnet_model.cuda()
+    # self.bert_model.cuda()
     img_pred = self.resnet_model(imgs)
     text_pred = self.bert_model(texts, text_masks).logits
 
     
-    self.hv_gate.cuda()
-    self.ht_gate.cuda()
-    self.z_gate.cuda()
+    # self.hv_gate.cuda()
+    # self.ht_gate.cuda()
+    # self.z_gate.cuda()
 
 
     h_v = self.hv_gate(img_pred)
