@@ -70,7 +70,7 @@ num_categories = len(categories)
 
 text_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
 
-#text_model.load_state_dict(torch.load('best_model_bert.pth'))
+text_model.load_state_dict(torch.load('best_model_bert.pth'))
 
 text_model.eval()
 
@@ -78,6 +78,8 @@ text_model.eval()
 img_model = torchvision.models.resnet18(pretrained=True)
 num_ftrs = img_model.fc.in_features
 img_model.fc = torch.nn.Linear(num_ftrs, num_categories)
+
+# 
 
 img_model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
 
@@ -88,6 +90,7 @@ from gmu_model import LinearClassifier, LinearCombine, Gated_MultiModal_Unit
 gmu_model = Gated_MultiModal_Unit(img_model, text_model)
 gmu_model.load_state_dict(torch.load('best_model_mmu.pth', map_location=torch.device('cpu')))
 
+predicted = model.forward('eval', imgs, text, text_mask, label)
 
 
 
