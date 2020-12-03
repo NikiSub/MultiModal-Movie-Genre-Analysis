@@ -1,0 +1,64 @@
+<!--doctype html-->
+<html lang="en">
+<head>
+  {% include 'page-includes.html' %}
+</head>
+
+<body>
+<div class="container blank-container">
+
+	<header class="website-header">
+     {% include 'header.html' %}
+  </header>
+
+	<div class="container mb-4">
+    <div class="row">
+ 	    <div class="jumbo-box rounded-lg bg-light px-4 py-4 col-lg-12 shadow-sm">
+	     	<div class="my-1">
+          <p>Final course project for CS 6501 (Fall 2020), taught by Dr. Vicente Ordóñez.</p>
+          <p>Created by Dane Williamson, Rohan Nair, and Nikilesh Subramaniam</p>
+        </div>
+      </div>
+  	</div>
+  </div>
+  
+</div>
+
+<main role="main" class="container blank-container">
+	<div class="row">
+
+	    <div class="col-md-6">
+        <div class="row">
+
+          <div class="col-md-12">
+            <a href="simple-demo" class="plain highlight">
+            <div class="highlight row no-gutters border rounded flex-md-row mb-4 shadow-sm h-sm-200 position-relative">
+              <div class="col p-3 d-flex flex-column position-static">
+                <strong class="d-inline-block mb-2 text-primary">Multi-modal Genre Prediction Demo</strong>
+                <p class="mb-auto">We are predicting the genres of a movie based on the image of its poster and any text contained in it using <a style = " white-space:nowrap; " href="https://github.com/clovaai/CRAFT-pytorch">CLOVA AI's text extractor</a> and a <a style = " white-space:nowrap; " href="https://github.com/johnarevalo/gmu-mmimdb">gated multimodal unit</a> (GMU).</p>
+              </div>
+              <div class="col-auto d-none d-xl-block p-0">
+                <img src="static/images/report_sample.PNG" width="220" class="py-auto my-4"/>
+              </div>
+            </div>
+            </a>
+          </div>
+
+        </div>
+	    </div>
+
+	</div>
+
+</main><!-- /.container -->
+
+<footer class="page-footer">
+  {% include 'footer.html' %}
+</footer>
+
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Bootstrap JS -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="static/js/bootstrap.min.js"></script>
+
+</body>
+</html>

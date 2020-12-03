@@ -1,0 +1,12 @@
+runtime: custom
+env: flex
+
+# This sample incurs costs to run on the App Engine flexible environment. 
+# Here we only are using one instance. 
+# https://cloud.google.com/appengine/docs/flexible/python/configuring-your-app-with-app-yaml
+manual_scaling:
+  instances: 1
+resources:
+  cpu: 2
+  memory_gb: 4
+  disk_size_gb: 20
