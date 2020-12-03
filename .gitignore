@@ -34,3 +34,8 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+
+## Torch Models
+best_model_bert.pth
+best_img_model.pth
