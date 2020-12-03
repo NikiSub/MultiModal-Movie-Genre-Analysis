@@ -1,6 +1,8 @@
 '''
 	Main app for vislang.ai
 '''
+import sys
+import os, shutil
 import random, io, time
 import requests as http_requests
 
@@ -13,7 +15,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from pagination import Pagination
-from utils import resize_image, center_crop_image, image2string, rotate_image_if_needed
+from utils_a import resize_image, center_crop_image, image2string, rotate_image_if_needed
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
@@ -47,8 +49,9 @@ import torchvision
 from torchvision import transforms
 import torch
 from transformers import BertForSequenceClassification, BertConfig
+from transformers import BertTokenizer
 
-print("loading ResNet18")
+
 preprocess = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
@@ -67,33 +70,64 @@ genreClasses = {id: category for (id, category) in enumerate(categories)}
 
 num_categories = len(categories) 
 
-# model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
+print("Loading BERT")
+text_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
 
-# model.load_state_dict(torch.load('./best_BERT_model.pth'))
+text_model.load_state_dict(torch.load('best_bert_model.pth', map_location=torch.device('cpu')))
 
-# model.eval()
+text_model.eval()
+print("BERT loaded successfully!")
 
 # Loading ResNet-18
-model = torchvision.models.resnet18(pretrained=True)
-num_ftrs = model.fc.in_features
-model.fc = torch.nn.Linear(num_ftrs, num_categories)
+print("Loading ResNet-18")
+img_model = torchvision.models.resnet18(pretrained=True)
+num_ftrs = img_model.fc.in_features
+img_model.fc = torch.nn.Linear(num_ftrs, num_categories)
 
-model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
+# 
 
-model.eval() 
+img_model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
+
+img_model.eval()
+
+print("ResNet-18 loaded successfully!")
+
+sys.path.insert(1, '../')
+from gmu_model import LinearClassifier, LinearCombine, Gated_MultiModal_Unit
+from text_extractor import TextExtractor
+gmu_model = Gated_MultiModal_Unit(img_model, text_model)
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+#predicted = gmu_model.forward('eval', imgs, text, text_mask, label)
+
+print("Loading GMU")
+
+checkpoint = torch.load('best_gmu.pth', map_location=torch.device('cpu'))
+gmu_model.hv_gate.load_state_dict(checkpoint['hv_gate_state_dict'])
+gmu_model.ht_gate.load_state_dict(checkpoint['ht_gate_state_dict'])
+gmu_model.z_gate.load_state_dict(checkpoint['z_gate_state_dict'])
+
+print("GMU loaded successfully!")
 
 
-# preload ResNet-50.
-# model = torchvision.models.resnet50(pretrained = True)
-# model.eval()
-print('ResNet18 was loaded!!!!!')
+print("Preparing text extractor")
 
-# Load imagenet class names.
-# imagenetClasses = {int(idx): entry[1] for (idx, entry) in 
-#                    json.load(open('imagenet_class_index.json')).items()}
+if not os.path.isdir("./demo_images/"):
+	os.mkdir("./demo_images/")
 
-########################################################
+##Clear out folder	
+for filename in os.listdir("./demo_images/"):
+    file_path = os.path.join("./demo_images/", filename)
+    try:
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+    except Exception as e:
+        print('Failed to delete %s. Reason: %s' % (file_path, e))
+text_extractor = TextExtractor("./demo_images/","demo_text_extract_output.txt","demo")
 
+print("Text extractor loaded successfully!")
 
 
 @app.route('/simple-demo', methods = ["GET", "POST"])
@@ -132,7 +166,41 @@ def simple_demo():
 	# Read the image directly from the file stream.
 	file.seek(0)  # Reset file stream pointer.
 	img = Image.open(file).convert('RGB')
-
+	#Clear Demo folder
+	for filename in os.listdir("./demo_images/"):
+		file_path = os.path.join("./demo_images/", filename)
+		try:
+			if os.path.isfile(file_path) or os.path.islink(file_path):
+				os.unlink(file_path)
+			elif os.path.isdir(file_path):
+				shutil.rmtree(file_path)
+		except Exception as e:
+			print('Failed to delete %s. Reason: %s' % (file_path, e))
+	if os.path.isdir("./demo_intermediate_result/"):
+		for filename in os.listdir("./demo_intermediate_result/"):
+			file_path = os.path.join("./demo_intermediate_result/", filename)
+			try:
+				if os.path.isfile(file_path) or os.path.islink(file_path):
+					os.unlink(file_path)
+				elif os.path.isdir(file_path):
+					shutil.rmtree(file_path)
+			except Exception as e:
+				print('Failed to delete %s. Reason: %s' % (file_path, e))
+	#print("trying to save image")
+	img.save("./demo_images/0001.jpeg")
+	#print("saved image, starting text extraction")
+	text_extractor.extract_text()
+	text_from_file = text_extractor.get_item(0) #self.metadata[i][1]['plot'][0]
+	encoded_text = tokenizer.encode_plus(
+	text_from_file, add_special_tokens = True, truncation = True, 
+		max_length = 256, padding = 'max_length',
+		return_attention_mask = True,
+		return_tensors = 'pt')
+	text = encoded_text['input_ids'][0]
+	text_mask = encoded_text['attention_mask'][0]
+	print(tokenizer.convert_ids_to_tokens(text.numpy().tolist()))
+	
+	#print("Finished text extraction")
 	# If the image is uploaded from a mobile device.
 	# this avoids having the image rotated.
 	img = rotate_image_if_needed(img)
@@ -158,60 +226,77 @@ def simple_demo():
 	input_batch = input_tensor.unsqueeze(0)  # Add batch dim.
 	#print(model) # Print the model.
 	
-	outputs = model(input_batch)
+	outputs = img_model(input_batch)
 	print(outputs.shape)
 
-	# # Apply softmax and sort the values.
-	probs, indices = (-outputs.softmax(dim = 1).data).sort()
-	# # Pick the top-5 scoring ones.
-	probs = (-probs).numpy()[0][:5]; indices = indices.numpy()[0][:10]
-	# # Concat the top-5 scoring indices with the class names.
-	preds = ['P[\"' + genreClasses[idx] + '\"] = ' + ('%.6f' % prob) \
-         for (prob, idx) in zip(probs, indices)]
+	print(f"IMAGE CLASSIFIER OUTPUT: {outputs}")
 
-	# # Print top classes predicted.
-	print('\n'.join(preds))
+	outputs = outputs.flatten()
+	m = torch.nn.Sigmoid()
+	output = m(outputs)
+
+	values, indices = output.topk(5)
+
+	values = values.tolist()
+	indices = indices.tolist()
+
+	preds = [genreClasses[idx] + ' score: ' + ('%.4f' % val) for (val, idx) in zip(values, indices)] 
+
+	# preds = ''
+	# for val, idx in zip(values, indices):
+	# 	preds += genreClasses[idx] + ' score: ' + str(val) + '\n'
+
 	my_str = '\n'.join(preds)
+
+	# # # Apply softmax and sort the values.
+	# probs, indices = (-outputs.softmax(dim = 1).data).sort()
+	# # # Pick the top-5 scoring ones.
+	# probs = (-probs).numpy()[0][:5]; indices = indices.numpy()[0][:10]
+	# # # Concat the top-5 scoring indices with the class names.
+	# preds = ['P[\"' + genreClasses[idx] + '\"] = ' + ('%.6f' % prob) \
+    #      for (prob, idx) in zip(probs, indices)]
+
+	# # # Print top classes predicted.
+	# print('\n'.join(preds))
+	# my_str = '\n'.join(preds)
 
 	# Encode the output image as a string for display.
 	output_image_str = image2string(output_img)
 
+	print(f"TEXT SHAPE: {text.shape}")
+	print(f"TEXT_MASK SHAPE: {text_mask.shape}")
+	
+	text = text.unsqueeze(0)
+	text_mask = text_mask.unsqueeze(0)
+
+	predicted = gmu_model.forward('eval', input_batch, text, text_mask)
+
+	outputs = predicted.flatten()
+
+	values, indices = outputs.topk(5)
+
+	values = values.tolist()
+	indices = indices.tolist()
+
+	preds = [genreClasses[idx] + ' score: ' + ('%.4f' % val) for (val, idx) in zip(values, indices)]
+
+	my_str2 = preds
+	
+	print(f'GMU PREDICTION: {predicted}')
+
+	print(f'my_str2: {my_str2}')
+
+
+
+
+	
+
 	return {'filename': filename, 
 			'input_image': input_image_str, 
 			'output_image': output_image_str,
-			'debug_str': my_str}
+			'debug_str': my_str, 
+			'debug_str2': my_str2}
 
-# COCO Captions Explorer.
-@app.route('/coco-explorer', methods = ["GET"])
-def coco_search():
-
-	# Obtain the query string.
-	query_str = request.args.get("query", "dog playing with ball")
-	page_num = request.args.get("page_num", 1, type = int)
-	page_len = request.args.get("page_len", 20, type = int)
-	split = request.args.get("split", "train")
-
-	# Location for the whoosh index to be queried.
-	coco_index_path = 'static/whoosh/cococaptions-indexdir-%s' % split
-	# Pre-load whoosh index to query coco-captions.
-	cococaptions_index = index.open_dir(coco_index_path)
-
-	# Return results and do any pre-formatting before sending to view.
-	with cococaptions_index.searcher() as searcher:
-		query = QueryParser("caption", cococaptions_index.schema).parse(query_str)
-		results = searcher.search_page(query, page_num, pagelen = page_len)
-
-		result_set = list()
-		for result in results:
-			result_set.append({"image_id": result["image_url"],
-							   "caption": result["caption"].split("<S>")})
-
-	# Create pagination navigation if needed.
-	pagination = Pagination(query_str, len(results), page_num, page_len, other_arguments = {'split': split})
-
-	# Render results template.
-	return render_template('coco-search.html', 
-            results = result_set, query = query_str, split = split, pagination = pagination)
 
 if __name__ == '__main__':
     # Used when running locally only. When deploying to Google App
