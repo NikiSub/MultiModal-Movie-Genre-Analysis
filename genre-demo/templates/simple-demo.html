@@ -1,0 +1,139 @@
+<!--doctype html-->
+<html lang="en">
+<head>
+  {% include 'page-includes.html' %}
+</head>
+<body>
+
+<div class="container blank-container">
+
+	<header class="website-header">
+{% include 'header.html' %}
+  </header>
+
+      <main role="main">
+        <div class="jumbotron p-4 bg-light border mx-0 mx-md-4">
+          <div class="col-sm-12 mx-auto">
+            <h3 class="text-primary m-0">Simple Demo</h3>
+            <p class="font-ninety-em d-none d-lg-block mt-2 mb-0">
+              Multi-Modal Genre Prediction
+            </p>
+
+             <p class="font-ninety-em d-lg-none mt-2 mb-0">Here is another description of our demo.</p>
+          </div>
+        </div>
+
+        <div class="container mb-4">
+
+          <div class="demo-control-panel mx-auto">
+            <div class="wrapper-upload-image-component"> 
+              <div id="upload-image-component" class="mx-auto mw-100 p-0 my-0 form-control-goodwidth">
+
+                <nav class="mb-1">
+                  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <a class="nav-item nav-link active text-smaller" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true">upload an image</a>
+                    <a class="nav-item nav-link text-smaller" id="nav-profile-tab" data-toggle="tab" href="#nav-profile" role="tab" aria-controls="nav-profile" aria-selected="false">paste image URL</a>
+                  </div>
+                </nav>
+                
+                <div class="tab-content" id="nav-tabContent">
+
+                  <div class="tab-pane p-2 fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+                    <div class="p-1 rounded rounded-lg bg-white shadow-sm border">
+                    <div class="rounded rounded-lg bg-white border">
+                      <div class="input-group custom-file">
+                        <form action="simple-demo" class="m-0 p-0" method="POST" enctype="multipart/form-data" id="form-file-upload" name="form-file-upload">
+                        <input type="file" name="file-upload" class="custom-file-input" id="file-upload">
+                        <label class="custom-file-label-x border-0 form-control-placeholder" for="file-upload">
+                          Tap here to choose an image...
+                        </label>
+                        <i class="material-icons text-primary custom-file-label-x-icon">add_a_photo</i>
+                        </form>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane fade p-2" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
+                    <form action="simple-demo" class="m-0 p-0" method="POST" id="form-file-paste" name="form-file-paste">
+                      <div class="p-1 shadow-sm rounded rounded-lg bg-white border">
+                      <div class="rounded rounded-lg bg-white border">
+                        <div class="input-group">
+                          <input type="search" name="file-url" placeholder="Enter a link to an image here..." class="form-control border-0" id="image-input-url" value="{{filename}}"  aria-describedby="button-addon1" />
+                          <div class="input-group-append">
+                            <button type="submit" class="btn text-primary" id="button-addon1">
+                              <i class="material-icons text-primary">send</i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      </div>
+                    </form>
+                  </div>
+
+                </div>
+
+                <div class="text-center">
+                  <div class="text-center box-height-25">
+                    <img src="static/images/loading-icon-3.gif" id="loading-box" class="d-none" height="12"/>
+                    <!-- <div class="flashes"></div> -->
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 py-2 px-0 px-md-4">
+            <div class="demo-results-area col-12 border rounded-lg p-4">
+              <div class="row text-center text-lg-left">
+
+                  <div class="input-image-panel col-lg-6 col-md-6 col-12 mb-4 text-center">
+                    <p class="text-muted px-2 text-smaller text-center m-0">
+                         Movie Poster
+                    </p>
+                    <img id="g-input-image" class="img-fluid img-thumbnail" width="80%" src="static/images/91.jpg" alt="original image is here"/>
+                  </div>
+
+                  <div class="output-image-panel col-lg-6 col-md-6 col-12 mb-4 text-center">
+                    <div class="no-gutters border rounded flex-md-row mb-4 shadow-sm h-sm-200 position-relative">
+                      <p class="text-muted px-2 text-smaller text-center m-0">
+                          Single-Modal Genre Prediction (Top 5)
+                      </p>
+                      <div class="flashes"></div>
+                      
+                    </div>
+                    <div class="no-gutters border rounded flex-md-row mb-4 shadow-sm h-sm-200 position-relative">
+                      <p class="text-muted px-2 text-smaller text-center m-0">
+                        Multi-Modal Genre Prediction (Top 5)
+                      </p>
+                      <div class="flashes"></div>
+                    </div>
+                  </div>
+
+              </div>
+            </div>
+
+            <div class="col-12 border rounded-lg p-4 text-smallest mt-4 text-muted">
+              <strong>Technical Notes:</strong> This demo is running in a CPU-only cloud instance, hence the inference time it takes to run this demo is between 10 and 15 seconds ignoring preprocessing and upload/download times. The images uploded through this demo are not stored in our server or anywhere (not even temporarily), we only hold images on the server-side in volatile memory while they are being processed and return the resulting image as base64 encoded strings directly to the user's browser. Any images presented here as examples were not uploaded by a user but were images directly uploaded by our team. This is not a demo that aims to collect any data from users.
+            </div>
+
+          </div>
+
+        </div>
+      </main>
+
+</div>
+
+<footer class="page-footer">
+  {% include 'footer.html' %}
+</footer>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="static/js/bootstrap.min.js"></script>
+    <script src="static/js/vislang.js?v=4"></script>
+    
+</body>
+</html>
