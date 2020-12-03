@@ -48,6 +48,7 @@ from torchvision import transforms
 import torch
 from transformers import BertForSequenceClassification, BertConfig
 
+
 print("loading ResNet18")
 preprocess = transforms.Compose([
     transforms.Resize(256),
@@ -67,20 +68,27 @@ genreClasses = {id: category for (id, category) in enumerate(categories)}
 
 num_categories = len(categories) 
 
-# model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
+text_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
 
-# model.load_state_dict(torch.load('./best_BERT_model.pth'))
+text_model.load_state_dict(torch.load('best_model_bert.pth'))
 
-# model.eval()
+text_model.eval()
 
 # Loading ResNet-18
-model = torchvision.models.resnet18(pretrained=True)
-num_ftrs = model.fc.in_features
-model.fc = torch.nn.Linear(num_ftrs, num_categories)
+img_model = torchvision.models.resnet18(pretrained=True)
+num_ftrs = img_model.fc.in_features
+img_model.fc = torch.nn.Linear(num_ftrs, num_categories)
 
-model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
+img_model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
 
-model.eval() 
+img_model.eval()
+
+from gmu_model import LinearClassifier, LinearCombine, Gated_MultiModal_Unit
+
+gmu_model = Gated_MultiModal_Unit(img_model, text_model)
+gmu_model.load_state_dict(torch.load('best_gmu.pth', map_location=torch.device('cpu')))
+
+
 
 
 # preload ResNet-50.
@@ -181,37 +189,6 @@ def simple_demo():
 			'output_image': output_image_str,
 			'debug_str': my_str}
 
-# COCO Captions Explorer.
-@app.route('/coco-explorer', methods = ["GET"])
-def coco_search():
-
-	# Obtain the query string.
-	query_str = request.args.get("query", "dog playing with ball")
-	page_num = request.args.get("page_num", 1, type = int)
-	page_len = request.args.get("page_len", 20, type = int)
-	split = request.args.get("split", "train")
-
-	# Location for the whoosh index to be queried.
-	coco_index_path = 'static/whoosh/cococaptions-indexdir-%s' % split
-	# Pre-load whoosh index to query coco-captions.
-	cococaptions_index = index.open_dir(coco_index_path)
-
-	# Return results and do any pre-formatting before sending to view.
-	with cococaptions_index.searcher() as searcher:
-		query = QueryParser("caption", cococaptions_index.schema).parse(query_str)
-		results = searcher.search_page(query, page_num, pagelen = page_len)
-
-		result_set = list()
-		for result in results:
-			result_set.append({"image_id": result["image_url"],
-							   "caption": result["caption"].split("<S>")})
-
-	# Create pagination navigation if needed.
-	pagination = Pagination(query_str, len(results), page_num, page_len, other_arguments = {'split': split})
-
-	# Render results template.
-	return render_template('coco-search.html', 
-            results = result_set, query = query_str, split = split, pagination = pagination)
 
 if __name__ == '__main__':
     # Used when running locally only. When deploying to Google App

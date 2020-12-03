@@ -48,3 +48,22 @@ def center_crop_image(img, output_size):
     crop_top = int(round((image_height - crop_height) / 2.))
     crop_left = int(round((image_width - crop_width) / 2.))
     return crop_image(img, crop_top, crop_left, crop_height, crop_width)
+
+def top5_accuracy(predicted, labels):
+    sorted_vals, sorted_ids = \
+        predicted.data.sigmoid().sort(dim = 1, descending = True)
+    pred_vals = sorted_vals[:, :5] > 0.5 # Anything with sigmoid > 0.5 is 1.
+    true_vals = labels.data.gather(1, sorted_ids[:, :5]) # Find true values.
+    return (pred_vals == true_vals).sum(dim = 1) / 5.0
+
+def f_score(predicted, labels):
+    #print(predicted)
+    #print(predicted.data.sigmoid())
+    pred_vals = predicted.data.sigmoid() > 0.5
+    #print(pred_vals)
+    #print(labels)
+    true_positive = ((pred_vals==1) & (pred_vals == labels)).sum(dim = 1)
+    false_positive = ((pred_vals==1) & (pred_vals != labels)).sum(dim = 1)
+    false_negative = ((pred_vals==0) & (pred_vals != labels)).sum(dim = 1)
+    f_score = true_positive/(true_positive+(false_positive+false_negative)/2)
+    return f_score
