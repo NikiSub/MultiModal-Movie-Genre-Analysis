@@ -1,6 +1,8 @@
 '''
 	Main app for vislang.ai
 '''
+import sys
+import os, shutil
 import random, io, time
 import requests as http_requests
 
@@ -13,7 +15,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from pagination import Pagination
-from utils import resize_image, center_crop_image, image2string, rotate_image_if_needed
+from utils_a import resize_image, center_crop_image, image2string, rotate_image_if_needed
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
@@ -47,6 +49,7 @@ import torchvision
 from torchvision import transforms
 import torch
 from transformers import BertForSequenceClassification, BertConfig
+from transformers import BertTokenizer
 
 
 print("loading ResNet18")
@@ -70,7 +73,7 @@ num_categories = len(categories)
 
 text_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels = num_categories, output_attentions = False, output_hidden_states = False)
 
-text_model.load_state_dict(torch.load('best_model_bert.pth'))
+text_model.load_state_dict(torch.load('best_bert_model.pth', map_location=torch.device('cpu')))
 
 text_model.eval()
 
@@ -84,15 +87,28 @@ img_model.fc = torch.nn.Linear(num_ftrs, num_categories)
 img_model.load_state_dict(torch.load('best_img_model.pth', map_location=torch.device('cpu')))
 
 img_model.eval()
-
+sys.path.insert(1, '../')
 from gmu_model import LinearClassifier, LinearCombine, Gated_MultiModal_Unit
-
+from text_extractor import TextExtractor
 gmu_model = Gated_MultiModal_Unit(img_model, text_model)
-gmu_model.load_state_dict(torch.load('best_model_mmu.pth', map_location=torch.device('cpu')))
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+#TODO: This line Needs to be fixed
+#gmu_model.load_state_dict(torch.load('best_gmu.pth', map_location=torch.device('cpu')))
+#predicted = gmu_model.forward('eval', imgs, text, text_mask, label)
+if not os.path.isdir("./demo_images/"):
+	os.mkdir("./demo_images/")
 
-predicted = model.forward('eval', imgs, text, text_mask, label)
-
-
+##Clear out folder	
+for filename in os.listdir("./demo_images/"):
+    file_path = os.path.join("./demo_images/", filename)
+    try:
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+    except Exception as e:
+        print('Failed to delete %s. Reason: %s' % (file_path, e))
+text_extractor = TextExtractor("./demo_images/","demo_text_extract_output.txt","demo")
 
 # preload ResNet-50.
 # model = torchvision.models.resnet50(pretrained = True)
@@ -143,7 +159,41 @@ def simple_demo():
 	# Read the image directly from the file stream.
 	file.seek(0)  # Reset file stream pointer.
 	img = Image.open(file).convert('RGB')
-
+	#Clear Demo folder
+	for filename in os.listdir("./demo_images/"):
+		file_path = os.path.join("./demo_images/", filename)
+		try:
+			if os.path.isfile(file_path) or os.path.islink(file_path):
+				os.unlink(file_path)
+			elif os.path.isdir(file_path):
+				shutil.rmtree(file_path)
+		except Exception as e:
+			print('Failed to delete %s. Reason: %s' % (file_path, e))
+	if not os.path.isdir("./demo_intermediate_result/"):
+		for filename in os.listdir("./demo_intermediate_result/"):
+			file_path = os.path.join("./demo_intermediate_result/", filename)
+			try:
+				if os.path.isfile(file_path) or os.path.islink(file_path):
+					os.unlink(file_path)
+				elif os.path.isdir(file_path):
+					shutil.rmtree(file_path)
+			except Exception as e:
+				print('Failed to delete %s. Reason: %s' % (file_path, e))
+	#print("trying to save image")
+	img.save("./demo_images/0001.jpeg")
+	#print("saved image, starting text extraction")
+	text_extractor.extract_text()
+	text_from_file = text_extractor.get_item(0) #self.metadata[i][1]['plot'][0]
+	encoded_text = tokenizer.encode_plus(
+	text_from_file, add_special_tokens = True, truncation = True, 
+		max_length = 256, padding = 'max_length',
+		return_attention_mask = True,
+		return_tensors = 'pt')
+	text = encoded_text['input_ids'][0]
+	text_mask = encoded_text['attention_mask'][0]
+	print(tokenizer.convert_ids_to_tokens(text.numpy().tolist()))
+	
+	#print("Finished text extraction")
 	# If the image is uploaded from a mobile device.
 	# this avoids having the image rotated.
 	img = rotate_image_if_needed(img)
