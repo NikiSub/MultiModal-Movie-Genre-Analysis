@@ -12,7 +12,8 @@ https://github.com/clovaai/deep-text-recognition-benchmark
 - PyTorch>=0.4.1
 - torchvision>=0.2.1
 - opencv-python>=3.4.2
-
+- Flask >= 1.1.2
+- requirements.txt
 ```
 pip install -r requirements.txt
 ```
