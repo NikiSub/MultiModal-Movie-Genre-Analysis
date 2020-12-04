@@ -1,4 +1,4 @@
-Multimodal genre prediction based on movie poster
+Multimodal genre prediction using OCR
 
 CRAFT Text extraction: 
 
@@ -14,3 +14,10 @@ Insert https://drive.google.com/file/d/1Jk4eGD7crsqCCg9C9VjCLkMN3ze8kutZ/view in
 Insert https://drive.google.com/file/d/1b59rXuGGmKne1AuHnkgDzoYgKeETNMv9/view?usp=sharing into deep-text-recognition-benchmark folder
 
 Run test_craft.py
+
+To run demo: 
+
+'''shell
+cd genre-demo
+python3 main.py
+'''
