@@ -18,14 +18,13 @@ https://github.com/clovaai/deep-text-recognition-benchmark
 pip install -r requirements.txt
 ```
 
-### Instructions 
-Insert https://drive.google.com/file/d/1Jk4eGD7crsqCCg9C9VjCLkMN3ze8kutZ/view into the CRAFT-pytorch folder
+### Instructions
+#### Load pre-trained weights
+- Insert [craft_mlt_25k.pth](https://drive.google.com/file/d/1Jk4eGD7crsqCCg9C9VjCLkMN3ze8kutZ/view) into the CRAFT-pytorch folder
+- Insert [TPS-ResNet-BiLSTM-Attn.pth](https://drive.google.com/file/d/1b59rXuGGmKne1AuHnkgDzoYgKeETNMv9/view?usp=sharing) into deep-text-recognition-benchmark folder
+- Insert [best_gmu.pth](https://drive.google.com/file/d/1-bibnWb-pSrl9Io6kNTCJr8tNzeUVfPW/view), [best_model_mmu](https://drive.google.com/file/d/1FoACqjLxUwkXbvrYNIe-bkz2UPaptGMs/view), and [best_img_model](https://drive.google.com/file/d/13BLlR_XnIVk5RUJtKDl1rQz3VIDqAUIC/view) into genre-demo folder
 
-Insert https://drive.google.com/file/d/1b59rXuGGmKne1AuHnkgDzoYgKeETNMv9/view?usp=sharing into deep-text-recognition-benchmark folder
-
-Run test_craft.py
-
-To run demo: 
+#### Run demo: 
 
 ```shell
 cd genre-demo
