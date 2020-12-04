@@ -203,11 +203,11 @@ def simple_demo():
 	#print("Finished text extraction")
 	# If the image is uploaded from a mobile device.
 	# this avoids having the image rotated.
-	img = rotate_image_if_needed(img)
+	#img = rotate_image_if_needed(img)
 
 	# Resize and crop the input image.
-	img = resize_image(img, 256)
-	img = center_crop_image(img, 224)
+	#img = resize_image(img, 256)
+	#img = center_crop_image(img, 224)
 
 	# Encode the cropped  input image as a string for display.
 	input_image_str = image2string(img)
@@ -240,7 +240,7 @@ def simple_demo():
 	values = values.tolist()
 	indices = indices.tolist()
 
-	preds = [genreClasses[idx] + ' score: ' + ('%.4f' % val) for (val, idx) in zip(values, indices)] 
+	preds = ['<b>' + genreClasses[idx] + ' score</b>: ' + ('%.4f' % val) + '<br>' for (val, idx) in zip(values, indices)] 
 
 	# preds = ''
 	# for val, idx in zip(values, indices):
@@ -278,13 +278,17 @@ def simple_demo():
 	values = values.tolist()
 	indices = indices.tolist()
 
-	preds = [genreClasses[idx] + ' score: ' + ('%.4f' % val) for (val, idx) in zip(values, indices)]
+	preds = ['<b>' + genreClasses[idx] + ' score</b>: ' + ('%.4f' % val) + '<br>' for (val, idx) in zip(values, indices)]
 
-	my_str2 = preds
+	my_str2 = '\n'.join(preds)
 	
 	print(f'GMU PREDICTION: {predicted}')
 
 	print(f'my_str2: {my_str2}')
+
+	print(f'text_from_file: {text_from_file}')
+
+	my_str3 = '<b>Extracted text: </b>' + text_from_file
 
 
 
@@ -295,7 +299,8 @@ def simple_demo():
 			'input_image': input_image_str, 
 			'output_image': output_image_str,
 			'debug_str': my_str, 
-			'debug_str2': my_str2}
+			'debug_str2': my_str2,
+			'debug_str3': my_str3}
 
 
 if __name__ == '__main__':
