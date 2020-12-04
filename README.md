@@ -1,5 +1,7 @@
 ## Multimodal genre prediction using OCR
 
+<img width="400" alt="demo screenshot" src="https://i.imgur.com/d8jPKiQ.png">
+
 #### CRAFT text extraction code: 
 
 https://github.com/clovaai/CRAFT-pytorch
