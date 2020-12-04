@@ -17,7 +17,7 @@ Run test_craft.py
 
 To run demo: 
 
-'''shell
+```shell
 cd genre-demo
 python3 main.py
-'''
+```
