@@ -60,11 +60,9 @@ $(document).ready(function() {
 		return false;
 	});
 
-	/* End of the submit behavior in the text2scene demo */
 
-	/* Handle the upload behavior in the gender demo */
 	// Show the results on the screen.
-	function showGenderDemoResults(response){
+	function showGenreDemoResults(response){
         if(response != 0){
         	if(!("error" in response)) {
         		// Empty error messages if any and hide the progress indicator.
@@ -94,7 +92,7 @@ $(document).ready(function() {
     }
 
     // This only happens when the server throws a serious error e.g. not a 200 HTTP error code.
-    function showGenderDemoError(response) {
+    function showGenreDemoError(response) {
 		$('.flashes').showError('There was an error on the server side');
 		$('#loading-box').toggleClass("d-none");
     }
@@ -134,8 +132,8 @@ $(document).ready(function() {
 	            data: form_data,
 	            contentType: false,
 	            processData: false,
-	            success: showGenderDemoResults,
-	            error: showGenderDemoError
+	            success: showGenreDemoResults,
+	            error: showGenreDemoError
 	        });
 
 	  		// Avoid a browser POST request.
@@ -183,18 +181,10 @@ $(document).ready(function() {
 	            data: form_data,
 	            contentType: false,
 	            processData: false,
-	            success: showGenderDemoResults,
-	            error: showGenderDemoError
+	            success: showGenreDemoResults,
+	            error: showGenreDemoError
 	        });
 	  	}
 	});
 
-	/* Handle the click behavior in the text2scene demo */
-	$("#submit-button").on("click", function(){
-		$('#loading-box').removeClass("invisible").addClass("visible");
-	});
-
-	$(".coco-search-radios").on("click", function(){
-		$("#coco-search-form").submit();
-	});
 })
