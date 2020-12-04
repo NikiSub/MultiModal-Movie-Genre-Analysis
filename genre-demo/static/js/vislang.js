@@ -71,12 +71,14 @@ $(document).ready(function() {
             	$('#loading-box').toggleClass("d-none");
 				$('.flashes').empty();
 				$('.flashes2').empty();
+				$('.flashes3').empty();
 
         		// Place the input and output image content.
             	$("#g-input-image").attr("src", "data:image/jpeg;base64," + response['input_image']);
 				// $("#g-output-image").attr("src", "data:image/jpeg;base64," + response['output_image']);
 				$('.flashes').showInfo(response['debug_str']);
-				$('.flashes2').showInfo(response['debug_str2']); 
+				$('.flashes2').showInfo(response['debug_str2']);
+				$('.flashes3').showInfo(response['debug_str3']); 
 
             } else {
             	// Show an error and hide progress indicator.
@@ -111,12 +113,14 @@ $(document).ready(function() {
 			e.preventDefault();
 			$('.flashes').empty();
 			$('.flashes2').empty();
+			$('.flashes3').empty();
 	  		$('.flashes').showError("Please enter a valid URL")
 	  		return false;
 	  	} else {
 	  		// Clear any error messages and show loading bar.
 			$('.flashes').empty();
-			$('.flashes2').empty();   
+			$('.flashes2').empty();
+			$('.flashes3').empty();   
 	  		$('#loading-box').toggleClass("d-none");
 	  		
 	  		// Prepare data to be sent with form.
@@ -163,7 +167,8 @@ $(document).ready(function() {
 
 			// Clear any error messages and show loading bar.
 			$('.flashes').empty();
-			$('.flashes2').empty(); 
+			$('.flashes2').empty();
+			$('.flashes3').empty(); 
 			$('#loading-box').toggleClass("d-none");
 
 			// Prepare data to be sent with form.
