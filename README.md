@@ -2,6 +2,8 @@
 
 <img width="400" alt="demo screenshot" src="https://i.imgur.com/d8jPKiQ.png">
 
+#### Check out our report [here!](https://drive.google.com/file/d/19ySTARAyFvvEzT6L19BA7aWQHJWqrLGU/view?usp=sharing)
+
 #### CRAFT text extraction code: 
 
 https://github.com/clovaai/CRAFT-pytorch
